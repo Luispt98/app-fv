@@ -172,4 +172,8 @@ st.download_button("📥 Descargar resultados en CSV", df_resultados.to_csv(inde
 st.subheader("✅ Conclusión")
 st.info("Criterios de viabilidad: VPN > 0, TIR > tasa de descuento, LCOE < tarifa de red, Payback < 10 años")
 
-if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red
+if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red and (payback_simple and payback_simple < 10):
+    st.success("El proyecto es viable y competitivo frente a la red.")
+else:
+    st.warning("Revisar parámetros: el proyecto no cumple condiciones de viabilidad.")
+
