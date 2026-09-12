@@ -39,6 +39,9 @@ degradacion_1 = st.sidebar.slider("Degradación primer año (%)", 0.0, 5.0, 2.5)
 degradacion_restante = st.sidebar.slider("Degradación anual (%)", 0.0, 2.0, 0.55)
 porcentaje_excedentes = st.sidebar.slider("Excedentes a la red (%)", 0.0, 100.0, 20.0)
 aom_pct = st.sidebar.slider("Costos O&M (% CAPEX)", 0.0, 10.0, 3.0)
+paneles = st.sidebar.number_input("Número de paneles", value=20)
+potencia_panel = st.sidebar.number_input("Potencia de cada panel (Wp)", value=610)
+potencia_instalada = paneles * (potencia_panel / 1000)  # en kWp
 
 # --- Bloque opcional de datos oficiales ---
 usar_datos_reales = st.sidebar.checkbox("Usar datos oficiales (Air-e/XM)", value=False)
