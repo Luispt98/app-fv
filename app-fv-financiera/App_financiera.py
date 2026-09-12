@@ -76,10 +76,10 @@ lcoe = capex_neto / energia_total
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("VPN", f"{vpn:,.0f} COP")
 col2.metric("TIR", f"{tir*100:.2f}%")
-col3.metric("Payback simple", f"{payback_simple} años")
-col4.metric("Payback descontado", f"{payback_desc} años")
+col3.metric("Payback simple", f"{payback_simple} años" if payback_simple else "No recupera")
+col4.metric("LCOE", f"{lcoe:.0f} $/kWh")
 
-# --- Gráficas ---
+# --- Gráficas dinámicas ---
 st.subheader("📊 Flujo de caja acumulado vs descontado")
 plt.figure(figsize=(8,4))
 plt.plot(range(len(flujo_acumulado)), flujo_acumulado, marker="o", label="Acumulado")
@@ -90,7 +90,7 @@ plt.ylabel("COP")
 plt.legend()
 st.pyplot(plt)
 
-st.subheader("⚡ Ahorro anual con degradación de paneles")
+st.subheader("⚡ Energía anual con degradación")
 años = list(range(1, vida_util+1))
 energia_degradada = []
 energia_temp = energia_anual_base
@@ -108,9 +108,32 @@ plt.ylabel("kWh")
 plt.legend()
 st.pyplot(plt)
 
-# --- Conclusión automática ---
+# --- 📖 Resumen narrativo dinámico ---
+st.subheader("📖 Resumen del escenario actual")
+
+# Energía en el año 10
+energia_temp = energia_anual_base
+for i in range(1, 11):
+    if i == 1:
+        energia_temp *= (1 - degradacion_1/100)
+    else:
+        energia_temp *= (1 - degradacion_restante/100)
+
+resumen_texto = f"""
+Con los parámetros actuales:
+- El sistema inicia con {energia_anual_base:,.0f} kWh/año y en el año 10 produce {energia_temp:,.0f} kWh/año debido a la degradación de los paneles.
+- El flujo de caja acumulado alcanza {flujo_acumulado.iloc[-1]:,.0f} COP al final de la vida útil.
+- La inversión inicial de {capex_neto:,.0f} COP se recupera en aproximadamente {payback_simple} años (payback simple).
+- El VPN calculado es de {vpn:,.0f} COP y la TIR de {tir*100:.2f}%, comparada con una tasa de descuento de {tasa_descuento}%.
+- El LCOE es de {lcoe:,.0f} $/kWh frente a una tarifa de red de {tarifa_red} $/kWh.
+"""
+st.write(resumen_texto)
+
+# --- Conclusión automática más realista ---
 st.subheader("✅ Conclusión")
-if vpn > 0 and tir*100 > tasa_descuento:
+st.info("Criterios de viabilidad: VPN > 0, TIR > tasa de descuento, LCOE < tarifa de red, Payback < 10 años")
+
+if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red and (payback_simple and payback_simple < 10):
     st.success("El proyecto es viable y competitivo frente a la red.")
 else:
     st.warning("Revisar parámetros: el proyecto no cumple condiciones de viabilidad.")
