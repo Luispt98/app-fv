@@ -84,6 +84,17 @@ payback_desc = next((i for i, v in enumerate(flujo_desc_acum) if v > 0), None)
 energia_total = energia_anual_base * vida_util
 lcoe = capex_neto / energia_total
 
+# --- Energía degradada para CO2 y gráfica ---
+años = list(range(1, vida_util+1))
+energia_degradada = []
+energia_temp = energia_anual_base
+for año in años:
+    if año == 1:
+        energia_temp *= (1 - degradacion_1/100)
+    else:
+        energia_temp *= (1 - degradacion_restante/100)
+    energia_degradada.append(energia_temp)
+
 # CO₂ evitado
 factor_emision = 0.5  # kg CO2 por kWh (ejemplo)
 co2_ev = sum(energia_degradada) * factor_emision / 1000  # toneladas
@@ -121,16 +132,6 @@ plt.title("Flujos netos por año")
 st.pyplot(plt)
 
 st.subheader("⚡ Energía anual con degradación")
-años = list(range(1, vida_util+1))
-energia_degradada = []
-energia_temp = energia_anual_base
-for año in años:
-    if año == 1:
-        energia_temp *= (1 - degradacion_1/100)
-    else:
-        energia_temp *= (1 - degradacion_restante/100)
-    energia_degradada.append(energia_temp)
-
 plt.figure(figsize=(8,4))
 plt.plot(años, energia_degradada, label="Energía generada (kWh)")
 plt.xlabel("Años")
@@ -171,4 +172,4 @@ st.download_button("📥 Descargar resultados en CSV", df_resultados.to_csv(inde
 st.subheader("✅ Conclusión")
 st.info("Criterios de viabilidad: VPN > 0, TIR > tasa de descuento, LCOE < tarifa de red, Payback < 10 años")
 
-if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red and (payback_simple and payback_simple <
+if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red
