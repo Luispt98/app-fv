@@ -8,7 +8,7 @@ st.set_page_config(page_title="Evaluador Financiero Solar Fotovoltaico", layout=
 st.title("☀️ Evaluador Financiero Solar Fotovoltaico")
 
 # --- Cargar Excel ---
-archivo = "3.Evaluación financiera Sistemas solar fotovoltaico.xlsx"
+archivo = "app-fv-financiera/3.Evaluación financiera Sistemas solar fotovoltaico.xlsx"
 xls = pd.ExcelFile(archivo)
 
 # ================================
