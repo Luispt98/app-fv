@@ -86,7 +86,7 @@ lcoe = capex_neto / energia_total
 
 # CO₂ evitado
 factor_emision = 0.5  # kg CO2 por kWh (ejemplo)
-co2_ev = sum(flujos[1:]) / tarifa_red * factor_emision / 1000  # toneladas aprox
+co2_ev = sum(energia_degradada) * factor_emision / 1000  # toneladas
 
 # --- Mostrar métricas ---
 col1, col2, col3, col4 = st.columns(4)
@@ -169,4 +169,6 @@ st.download_button("📥 Descargar resultados en CSV", df_resultados.to_csv(inde
 
 # --- Conclusión automática más realista ---
 st.subheader("✅ Conclusión")
-st.info("Criterios de viabilidad: VPN > 0, TIR > tasa de descuento, LCOE < tarifa de red, Pay
+st.info("Criterios de viabilidad: VPN > 0, TIR > tasa de descuento, LCOE < tarifa de red, Payback < 10 años")
+
+if vpn > 0 and tir*100 > tasa_descuento and lcoe < tarifa_red and (payback_simple and payback_simple <
