@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import math
 import os
+import hashlib
+import tempfile
 import posixpath
 import re
 import zipfile
@@ -387,32 +389,46 @@ def main() -> None:
     st.caption("Uribia, La Guajira · Vestas V90 2 MW · Panel de lectura del Excel; no modifica el archivo original.")
 
     with st.sidebar:
-        st.header("Configuración")
-        path_text = st.text_input("Ruta del libro Excel", value=str(DEFAULT_BOOK), help="Guarda el Excel actualizado y escribe aquí su ruta completa si está en otra carpeta.")
-        auto_refresh = st.checkbox("Detectar cambios guardados automáticamente", value=True)
-        refresh_seconds = st.selectbox("Frecuencia de comprobación", [15, 30, 60, 120], index=1, format_func=lambda x: f"Cada {x} segundos")
-        st.caption("El Excel debe guardarse después de editar NASA POWER para que el panel detecte los cambios.")
-        if st.button("Actualizar ahora", use_container_width=True):
+        st.header("Cargar libro de cálculo")
+        uploaded_book = st.file_uploader(
+            "Sube tu archivo Excel (.xlsx)",
+            type=["xlsx"],
+            help="Selecciona el Excel desde tu computador. Se procesa temporalmente en esta sesión y no se modifica."
+        )
+        auto_refresh = st.checkbox("Actualizar la página periódicamente", value=False)
+        refresh_seconds = st.selectbox("Frecuencia de actualización", [30, 60, 120], index=0, format_func=lambda x: f"Cada {x} segundos")
+        if st.button("Actualizar gráficos ahora", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
         st.divider()
         st.caption("Hoja fuente: 00_DATOS_NASA · Encabezados detectados por nombre, no por rango fijo.")
+        st.caption("Para reflejar cambios, guarda el Excel y vuelve a subir la versión actualizada.")
 
     if auto_refresh:
         st_autorefresh(interval=int(refresh_seconds * 1000), key="nasa_power_auto_refresh")
 
-    book_path = Path(os.path.expandvars(path_text)).expanduser()
-    if not book_path.is_absolute():
-        book_path = (Path.cwd() / book_path).resolve()
-    if not book_path.exists():
-        st.error(f"No encuentro el archivo:\n\n`{book_path}`\n\nPon el Excel junto al script o escribe la ruta correcta en la barra lateral.")
-        st.stop()
+    if uploaded_book is not None:
+        workbook_bytes = uploaded_book.getvalue()
+        digest = hashlib.sha256(workbook_bytes).hexdigest()
+        book_path = Path(tempfile.gettempdir()) / f"nasa_power_upload_{digest[:20]}.xlsx"
+        try:
+            if not book_path.exists():
+                book_path.write_bytes(workbook_bytes)
+        except OSError as exc:
+            st.error(f"No pude preparar el Excel cargado en el entorno temporal. Detalle: {exc}")
+            st.stop()
+        st.success(f"Archivo cargado: {uploaded_book.name} · {len(workbook_bytes) / (1024 * 1024):.1f} MB")
+    else:
+        book_path = DEFAULT_BOOK
+        if not book_path.exists():
+            st.info("Para empezar, sube el archivo `03_CALCULO_INFORME_AUDITADO_AI.xlsx` en el panel lateral.")
+            st.stop()
 
     stat = book_path.stat()
     try:
         data = cached_parse(str(book_path), stat.st_mtime_ns, stat.st_size)
     except (OSError, zipfile.BadZipFile, KeyError, ValueError, ET.ParseError) as exc:
-        st.error(f"No pude leer el Excel. Comprueba que sea un archivo .xlsx válido y que no esté en proceso de guardado.\n\nDetalle: {exc}")
+        st.error(f"No pude leer el Excel. Comprueba que sea un archivo .xlsx válido y que contenga la hoja `00_DATOS_NASA`.\n\nDetalle: {exc}")
         st.stop()
 
     records = data["records"]
@@ -433,7 +449,7 @@ def main() -> None:
     c3.metric("Viento medio · 50 m", _fmt(avg50, 2, " m/s"))
     c4.metric("Presión media", _fmt(avg_ps, 2, " kPa"))
     c5.metric("Temperatura media", _fmt(avg_t, 2, " °C"))
-    st.caption(f"Datos leídos: {quality['start']:%d/%m/%Y %H:%M} UTC a {quality['end']:%d/%m/%Y %H:%M} UTC · Archivo guardado por última vez: {datetime.fromtimestamp(stat.st_mtime):%d/%m/%Y %H:%M:%S}.")
+    st.caption(f"Datos leídos: {quality['start']:%d/%m/%Y %H:%M} UTC a {quality['end']:%d/%m/%Y %H:%M} UTC · Archivo: {uploaded_book.name if uploaded_book is not None else book_path.name}.")
 
     all_years = sorted({r[0].year for r in records})
     years: List[str] = ["Todos"] + [str(y) for y in all_years]
